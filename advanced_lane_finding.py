@@ -9,56 +9,65 @@ class LaneFinder():
         self.mtx = mtx
         self.dist = dist
         self.newCameraMtx = newCameraMtx
+        self.leftlinetracker = []
+        self.rightlinetracker = []
+        # self.goodlaneline = False
 
     def findlanes(self, img):
-        self.img_in = img
-        self.img_undist = cv2.undistort(
-            self.img_in, self.mtx, self.dist, None, self.newCameraMtx
-            )
-        self.img_threshold = self.threshold(self.img_undist)
-        return self.img_threshold
-        self.img_warp = self.warpImage(self.img_threshold)
-        lane_px = self.getLanePixels(self.img_warp)
-        # left_line = Line(lane_px[0])
-        # right_line = Line(lane_px[1])
+        mtx, dist, newCameraMtx = self.mtx, self.dist, self.newCameraMtx
+        img_in = img
+        img_undist = cv2.undistort(img_in, mtx, dist, None, newCameraMtx)
+        img_warp, Minv = utils.warpImage(img_undist)
+        img_threshold = self.threshold(img_warp)
+        lane_px, img_output = self.getLanePixels(img_threshold)
+        self.left_line = utils.Line(lane_px[0], img_threshold.shape[0], self.leftlinetracker)
+        self.right_line = utils.Line(lane_px[1], img_threshold.shape[0], self.rightlinetracker)
+        self.leftlinetracker.append(self.left_line)
+        self.rightlinetracker.append(self.right_line)
+        if len(self.leftlinetracker) > 5:
+            self.leftlinetracker = self.leftlinetracker[1:]
+        if len(self.rightlinetracker) > 5:
+            self.rightlinetracker = self.rightlinetracker[1:]
+        img_final = utils.draw_lane(img_undist, self.leftlinetracker, self.rightlinetracker, Minv)
+        img_output = cv2.warpPerspective(img_output, Minv, (img.shape[1], img.shape[0]))
+
+        img_final = cv2.addWeighted(img_final, 0.5, img_output, 0.5, 0)
+        
+        return img_final
 
     def threshold(self, img):
-        grad_thresh = self.gradientThreshold(img)
-        color_thresh = self.colorThreshold(img)
+        grad_thresh = utils.gradientThreshold(img)
+        color_thresh = utils.colorThreshold(img)
         img_threshold = grad_thresh | color_thresh
 
         return img_threshold
 
-    @staticmethod
-    def gradientThreshold(img):
-        img_gray = utils.bgr2gray(img)
-        sobelx_binary = utils.sobel_abs_thresh(img_gray, 'x', 7, (50,180))
-        sobely_binary = utils.sobel_abs_thresh(img_gray, 'y', 7, (800,255))
-        sobel_mag_binary = utils.sobel_mag_thresh(img_gray, 7, (100,255))
-        sobel_dir_binary = utils.sobel_dir_thresh(img_gray, 23, (0.7,1.3))
-        grad_binary = \
-            (sobelx_binary & sobely_binary) | (sobel_mag_binary & sobel_dir_binary)
+    def getLanePixels(self, img):
+        img_peaks = utils.gray2bgr(img.copy())
+        img_hist = img[img.shape[0]//2:,:]
+        hist_y = np.sum(img_hist, 0)
+        hist_x = np.arange(0, img_hist.shape[1], 1)
+        mid_x = len(hist_y) // 2
+        leftpeak_x = np.argmax(hist_y[:mid_x])
+        rightpeak_x = np.argmax(hist_y[mid_x:]) + mid_x
 
-        return grad_binary
+        if not self.leftlinetracker:
+            left_lane_pts, img_out_left = utils.sliding_windows(img, leftpeak_x)
+        elif self.leftlinetracker[-1].px_cnt < 500:
+            left_lane_pts, img_out_left = utils.sliding_windows(img, leftpeak_x)
+        else:
+            left_lane_pts, img_out_left = utils.search_from_prior(img, self.left_line)
 
-    @staticmethod
-    def colorThreshold(img):
-        img_rgb = utils.bgr2rgb(img)
-        img_hls = utils.bgr2hls(img)
-        r = img_rgb[:,:,0]
-        h = img_hls[:,:,0]
-        s = img_hls[:,:,2]
+        if not self.rightlinetracker:
+            right_lane_pts, img_out_right = utils.sliding_windows(img, rightpeak_x)
+        elif self.rightlinetracker[-1].px_cnt < 500:
+            right_lane_pts, img_out_right = utils.sliding_windows(img, rightpeak_x)
+        else:
+            right_lane_pts, img_out_right = utils.search_from_prior(img, self.right_line)
 
-        r_binary = cv2.inRange(r, 210, 255)
-        h_binary = cv2.inRange(h, 0, 35)
-        s_binary = cv2.inRange(s, 135, 255)
+        img_output = cv2.add(img_out_left, img_out_right)
 
-        color_binary = (r_binary & h_binary) | s_binary
-
-        return color_binary
-
-    def imgWarp(self, img):
-        return img
+        return (left_lane_pts, right_lane_pts), img_output
 
 def main():
     # Parse input arguments
