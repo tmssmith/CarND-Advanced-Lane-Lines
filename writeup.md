@@ -62,7 +62,7 @@ Satisfied by this document
 
 This step is completed by the `cal_cam` function of the [`lane_find_utils.py`](https://github.com/tmssmith/CarND-Advanced-Lane-Lines/blob/master/lane_find_utils.py) module, lines 503 to 530.
 
-First we set up an empty array for the object points as  `obj_p`. Object points represent the coordinates in 3D space of the chessboard corners in the world. 
+First we set up an empty array for the object points as  `obj_p`. Object points represent the coordinates in 3D space of the chessboard corners in the world.
 
 The object points for a given calibration image are labelled `objp`. We assume all the chessboard corners lie on the same plane and so can define `objp` to be the same for each calibration image (as each image is of the same chessboard with the same number of corners. Hence `obj_p` contains one instance of `objp` for each calibration image.
 
@@ -102,9 +102,9 @@ The binary threshold image is warped to a birds-eye perspective using the `warpI
 
 This function warps the input image using source and destination points that are hardcoded at lines 31 to 38 in [`parameters.py`](https://github.com/tmssmith/CarND-Advanced-Lane-Lines/blob/master/parameters.py). They are shown below for reference:
 
-| Source        | Destination   | 
-|:-------------:|:-------------:| 
-| (590, 467)    | (320, 0)      | 
+| Source        | Destination   |
+|:-------------:|:-------------:|
+| (590, 467)    | (320, 0)      |
 | (721, 467)    | (1020, 0)     |
 | (1020, 669)   | (1020, 669)   |
 | (320, 669)    | (320, 669)    |
@@ -200,4 +200,3 @@ Potential approachs to improve this pipeline could include:
     * Thresholding parameters are currently hardcoded and must cater for many different image conditions. An ability to dynamically adjust these parameters based on previous frames could improve results
 * Dynamic perspective transform
     * Using features identified in the image, such as an horizon, or lane lines from previous images, it could be possible to adjust the source and destination points for the perspective transform to observations
-* 
