@@ -7,7 +7,7 @@ In this project, a software pipeline has been developed to identify the lane bou
 The write up for this project is available [here](https://github.com/tmssmith/CarND-Advanced-Lane-Lines/master/writeup.md).
 The write up presents the steps taken in the pipeline and shows example output images at each stage of the process.
 
-**Advanced Lane Finding Pipeline
+**Advanced Lane Finding Pipeline**
 ---
 
 usage: advanced_lane_finding.py \[-h] input_file \[cal_file]
